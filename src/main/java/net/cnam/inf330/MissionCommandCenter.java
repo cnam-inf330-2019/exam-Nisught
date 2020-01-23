@@ -1,21 +1,23 @@
 package net.cnam.inf330;
 
+import java.security.InvalidParameterException;
 import java.util.*;
 
 /**
  * Class for managing the rovers that are deployed on the Mars exploration grid.
  */
-public class MissionCommandCenter {
+public final class MissionCommandCenter {
     private int gridWidth;
     private int gridHeight;
     private List<Rover> rovers;
 
-    // TODO 1) Make MCC a singleton class
+    // TODO 1) Make MCC a singleton class (OK)
+    private static volatile MissionCommandCenter instance = null;
 
     /**
      * Create a MCC without a predefined grid size.
      */
-    public MissionCommandCenter() {
+    private MissionCommandCenter() {
         this.gridWidth = -1;
         this.gridHeight = -1;
         this.rovers = new ArrayList<>();
@@ -27,7 +29,7 @@ public class MissionCommandCenter {
      * @param gridWidth  The width (X axis) of the exploration grid
      * @param gridHeight The height (Y axis) of the exploration grid
      */
-    public MissionCommandCenter(int gridWidth, int gridHeight) {
+    private MissionCommandCenter(int gridWidth, int gridHeight) {
         this.gridWidth = gridWidth;
         this.gridHeight = gridHeight;
         this.rovers = new ArrayList<>();
@@ -95,14 +97,20 @@ public class MissionCommandCenter {
         try {
             checkRoverPosition(rover);
         } catch (InvalidRoverPositionException e) {
-            // TODO 4) b) Don't deploy the rover if its initial position is invalid
+            // TODO 4) b) Don't deploy the rover if its initial position is invalid (OK)
             System.out.println("### WARNING : " + e.getMessage());
+            return null;
         }
 
         System.out.println("Controlling rover " + roverId + "...");
         for (Character c : roverInstructions.toCharArray()) {
             rover.processCommand(RoverCommand.valueOf(String.valueOf(c)));
-            // TODO 4) a) Make the rover pull back if the move is invalid
+            try {
+                checkRoverPosition(rover);
+            } catch (InvalidRoverPositionException e) {
+                // TODO 4) a) Make the rover pull back if the move is invalid
+                System.out.println("### WARNING : " + e.getMessage());
+            }
         }
 
         System.out.println("Terminated communication with rover " + roverId + ".");
@@ -116,11 +124,28 @@ public class MissionCommandCenter {
      * @throws InvalidRoverPositionException
      */
     public void checkRoverPosition(Rover rover) throws InvalidRoverPositionException {
-        if (rover.getX() > this.gridWidth || rover.getY() > this.gridHeight)
+        if (rover.getX() > this.gridWidth || rover.getY() > this.gridHeight){
+            rover.moveBackward();
+            /*On aurait pu faire reculer le rover en utilisant les méthodes rotate et moveForward comme ceci
+                    rover.rotateLeft();
+                    rover.rotateLeft();
+                    rover.moveForward();
+                    rover.rotateLeft();
+                    rover.rotateLeft();
+                    mais cela semble beaucoup plus archaique*/
             throw new InvalidRoverPositionException(rover,
                     "Position out of grid ! Communication signal weak.");
+        }
 
-        // TODO 2) Throw an InvalidRoverPositionException if there is another rover on the rover's current position.
+        // TODO 2) Throw an InvalidRoverPositionException if there is another rover on the rover's current position. (OK)
+        for (Rover r : rovers){
+            if (r.getId() != rover.getId()){
+                if ((r.getX() == rover.getX()) && (r.getY() == rover.getY())){
+                    rover.moveBackward();
+                    throw new InvalidRoverPositionException(rover, "There is another rover on the rover's current position");
+                }
+            }
+        }
     }
 
     /**
@@ -132,6 +157,7 @@ public class MissionCommandCenter {
      */
     public double computeRoverCoveragePercent(Rover rover) {
         // TODO 6) Compute the rover's grid coverage percentage
+
         return 0d;
     }
 
@@ -176,5 +202,29 @@ public class MissionCommandCenter {
      */
     public List<Rover> getRovers() {
         return rovers;
+    }
+
+    public static MissionCommandCenter getInstance() {
+        if (instance == null) {
+            synchronized (MissionCommandCenter.class) {
+                if (instance == null) {
+                    instance = new MissionCommandCenter();
+                }
+            }
+        }
+
+        return instance;
+    }
+
+    public static MissionCommandCenter getInstance(int gridWidth, int gridHeight) {
+        if (instance == null) {
+            synchronized (MissionCommandCenter.class) {
+                if (instance == null) {
+                    instance = new MissionCommandCenter(gridWidth, gridHeight);
+                }
+            }
+        }
+
+        return instance;
     }
 }
