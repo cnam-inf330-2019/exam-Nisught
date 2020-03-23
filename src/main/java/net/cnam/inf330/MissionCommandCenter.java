@@ -60,6 +60,7 @@ public final class MissionCommandCenter {
             String roverInstructionsData = it.next();
 
             Rover rover = deployAndMoveRover(currentRoverId, roverInitialStateData, roverInstructionsData);
+            // FIXME What if rover is null ? => NPE
             rovers.add(rover);
             System.out.println("Rover " + currentRoverId + "'s final state : " + rover);
 
@@ -125,7 +126,7 @@ public final class MissionCommandCenter {
      */
     public void checkRoverPosition(Rover rover) throws InvalidRoverPositionException {
         if (rover.getX() > this.gridWidth || rover.getY() > this.gridHeight){
-            rover.moveBackward();
+            rover.moveBackward(); // FIXME This should be done in the caller method catching the exception
             /*On aurait pu faire reculer le rover en utilisant les méthodes rotate et moveForward comme ceci
                     rover.rotateLeft();
                     rover.rotateLeft();
